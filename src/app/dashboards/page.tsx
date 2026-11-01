@@ -29,7 +29,7 @@ export default async function Dashboards() {
           <form action={createDashboard} className="flex flex-wrap gap-2">
             <input name="name" aria-label="Nombre del dashboard" placeholder="Nombre (ej. Diarios con historia)" className={field} />
             <input name="account" aria-label="ID de la cuenta publicitaria" placeholder="ID de cuenta (act_123…)" className={field} required />
-            <button className="px-4 py-2.5 rounded-lg bg-accent text-white">Crear</button>
+            <button className="px-4 py-2.5 rounded-lg bg-accent text-on-accent">Crear</button>
           </form>
           <p className="text-muted text-xs mt-3">
             Cada dashboard muestra solo el gasto y las ventas atribuidas a esa cuenta. Después de crear, tocá Sincronizar Meta en Resumen.

@@ -18,7 +18,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
           className="w-full bg-bg border border-line rounded px-3 py-2 outline-none focus:border-accent"
         />
         {error && <p className="text-bad text-xs">Contraseña incorrecta o demasiados intentos.</p>}
-        <button className="w-full px-4 py-2 rounded bg-accent text-white">Entrar</button>
+        <button className="w-full px-4 py-2 rounded bg-accent text-on-accent">Entrar</button>
       </form>
     </div>
   );

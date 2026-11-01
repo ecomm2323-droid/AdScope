@@ -7,13 +7,13 @@ const FIELDS = "campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,spen
 export const appUrl = () => process.env.APP_URL ?? "http://localhost:3000";
 export const redirectUri = () => `${appUrl()}/api/meta/callback`;
 
-// OAuth token saved by /api/meta/callback wins; META_ACCESS_TOKEN in .env.local is the fallback.
+// META_ACCESS_TOKEN in .env.local (e.g. a non-expiring System User token) wins; the OAuth token saved by /api/meta/callback is the fallback.
 export function metaToken(pid: number): string | undefined {
+  if (process.env.META_ACCESS_TOKEN) return process.env.META_ACCESS_TOKEN;
   const c = q1<{ access_token: string; expires_at: number }>(
     "select access_token, expires_at from meta_connection where project_id=?", pid,
   );
-  if (c && c.expires_at > Date.now()) return c.access_token;
-  return process.env.META_ACCESS_TOKEN;
+  return c && c.expires_at > Date.now() ? c.access_token : undefined;
 }
 
 async function graph<T>(path: string): Promise<T> {

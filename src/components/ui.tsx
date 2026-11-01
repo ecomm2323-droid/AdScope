@@ -9,8 +9,8 @@ export const money = (n: number) =>
 
 export function Card({ title, children, className = "" }: { title?: string; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`glass rounded-xl p-4 ${className}`}>
-      {title && <h2 className="text-xs uppercase tracking-wide text-muted mb-3">{title}</h2>}
+    <section className={`glass rounded-3xl p-5 ${className}`}>
+      {title && <h2 className="text-sm text-muted mb-4">{title}</h2>}
       {children}
     </section>
   );
@@ -18,9 +18,9 @@ export function Card({ title, children, className = "" }: { title?: string; chil
 
 export function Kpi({ label, value, tone, hint }: { label: string; value: string; tone?: "good" | "bad"; hint?: string }) {
   return (
-    <div className="glass lift rounded-xl p-4">
-      <div className="text-xs text-muted">{label}</div>
-      <div className={`text-2xl font-semibold mt-1 tabular-nums ${tone === "good" ? "text-good" : tone === "bad" ? "text-bad" : ""}`}>{value}</div>
+    <div className="glass lift rounded-3xl p-5">
+      <div className="text-sm text-muted">{label}</div>
+      <div className={`text-3xl font-medium mt-2 tabular-nums tracking-tight ${tone === "good" ? "text-good" : tone === "bad" ? "text-bad" : ""}`}>{value}</div>
       {hint && <div className="text-xs text-muted mt-1">{hint}</div>}
     </div>
   );
@@ -31,7 +31,7 @@ export function Kpi({ label, value, tone, hint }: { label: string; value: string
 export function Filters({ base, p, m, v, f, t, extra = "" }: { base: string; p: Period; m: Model; v: Basis; f?: string; t?: string; extra?: string }) {
   const href = (np: Period, nm: Model, nv: Basis = v) => `${base}?p=${np}&m=${nm}&v=${nv}${np === "custom" && f ? `&f=${f}&t=${t ?? f}` : ""}${extra}`;
   const chip = (on: boolean) =>
-    `inline-flex items-center min-h-11 md:min-h-0 px-3 py-1.5 rounded-lg border ${on ? "bg-accent/20 border-accent text-white neon" : "border-line text-muted hover:text-white hover:border-white/25"}`;
+    `inline-flex items-center min-h-11 md:min-h-0 px-4 py-1.5 rounded-full border ${on ? "bg-accent border-accent text-on-accent font-medium" : "border-line bg-panel text-muted hover:text-white hover:border-white/25"}`;
   const now = Date.now();
   const d = new Date();
   const monday = now - ((d.getDay() + 6) % 7) * 864e5;
@@ -73,7 +73,7 @@ export function Filters({ base, p, m, v, f, t, extra = "" }: { base: string; p: 
             <label className="text-xs text-muted">Hasta
               <input type="date" name="t" defaultValue={t ?? f} max={today} required className={field} />
             </label>
-            <button className="rounded-lg bg-accent px-3 py-2.5 text-white font-medium">Aplicar</button>
+            <button className="rounded-full bg-accent px-3 py-2.5 text-on-accent font-medium">Aplicar</button>
           </form>
         </div>
       </details>
@@ -115,18 +115,18 @@ export function DailyChart({ rows }: { rows: Day[] }) {
         {rows.map((r, i) => (
           <g key={r.date}>
             <title>{`${r.date}: gasto ${money(r.spend)}, facturación ${money(r.rev)}`}</title>
-            <rect x={P + slot * i + slot * 0.15} y={y(r.spend)} width={slot * 0.7} height={H - P - y(r.spend)} rx="2" fill="#8b7cff" opacity=".75" />
+            <rect x={P + slot * i + slot * 0.15} y={y(r.spend)} width={slot * 0.7} height={H - P - y(r.spend)} rx="3" fill="#a6ff00" opacity=".8" />
           </g>
         ))}
-        <polyline points={line} fill="none" stroke="#3dffa0" strokeWidth="2" strokeLinejoin="round" />
-        {rows.map((r, i) => <circle key={r.date} cx={P + slot * i + slot / 2} cy={y(r.rev)} r="3" fill="#3dffa0" />)}
+        <polyline points={line} fill="none" stroke="#ffffff" strokeWidth="2" strokeLinejoin="round" />
+        {rows.map((r, i) => <circle key={r.date} cx={P + slot * i + slot / 2} cy={y(r.rev)} r="3" fill="#ffffff" />)}
         <text x={P} y={H - 6} fill="#9aa2c0" fontSize="11">{rows[0].date}</text>
         <text x={W - P} y={H - 6} fill="#9aa2c0" fontSize="11" textAnchor="end">{rows[rows.length - 1].date}</text>
         <text x={P} y={12} fill="#9aa2c0" fontSize="11">{money(max)}</text>
       </svg>
       <figcaption className="flex gap-4 text-xs text-muted mt-1">
         <span><span aria-hidden className="inline-block h-2 w-3 rounded-sm bg-accent mr-1" />Gasto (barras)</span>
-        <span><span aria-hidden className="inline-block h-0.5 w-3 bg-good mr-1 align-middle" />Facturación (línea)</span>
+        <span><span aria-hidden className="inline-block h-0.5 w-3 bg-white mr-1 align-middle" />Facturación (línea)</span>
       </figcaption>
       <table className="sr-only">
         <caption>Gasto y facturación por día</caption>

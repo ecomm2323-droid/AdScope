@@ -111,7 +111,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
         <p className="text-xs text-muted">
           Ganancia neta = (lo que te queda por producto ÷ dólar) − gasto en anuncios. Producto sin monto cargado: se usa el precio de venta completo.
         </p>
-        <button className="px-4 py-2 rounded-lg bg-accent text-white font-medium neon">Guardar</button>
+        <button className="px-4 py-2 rounded-lg bg-accent text-on-accent font-medium neon">Guardar</button>
       </form>
 
       <div className="mt-6">

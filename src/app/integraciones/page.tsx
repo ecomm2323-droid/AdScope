@@ -89,7 +89,7 @@ function Webhooks({ base, projectId }: { base: string; projectId: number }) {
             {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
           </select>
           <input name="name" aria-label="Nombre del webhook" placeholder="Nombre (opcional)" className={field} />
-          <button className="px-4 py-2 rounded bg-accent text-white">Agregar webhook</button>
+          <button className="px-4 py-2 rounded bg-accent text-on-accent">Agregar webhook</button>
         </form>
         <p className="text-muted text-xs mt-3">
           Pegá la URL en la sección de webhooks/postback de tu plataforma de ventas. Después revisá la pestaña Pruebas para confirmar que el valor y el estado se leen bien.
