@@ -37,6 +37,23 @@ function Tool({ t }: { t: keyof typeof TOOLS }) {
   return <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium mr-2 align-middle ${cls}`}>{label}</span>;
 }
 
+// Screenshot with highlight boxes; marks are percentages of the image. tall = long capture, scrolls inside the card.
+function Shot({ src, alt, marks, tall }: { src: string; alt: string; marks: { x: number; y: number; w: number; h: number; label?: string }[]; tall?: boolean }) {
+  return (
+    <div className={`relative mt-2 rounded-xl border border-line overflow-hidden ${tall ? "max-h-[32rem] overflow-y-auto" : ""}`}>
+      <div className="relative">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={src} alt={alt} loading="lazy" className="block w-full h-auto" />
+        {marks.map((m, i) => (
+          <span key={i} className="absolute rounded-md border-2 border-accent" style={{ left: `${m.x}%`, top: `${m.y}%`, width: `${m.w}%`, height: `${m.h}%` }}>
+            {m.label && <span className="absolute -top-5 left-0 rounded bg-accent px-1.5 text-[11px] font-medium text-on-accent whitespace-nowrap">{m.label}</span>}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function Steps({ children }: { children: React.ReactNode }) {
   return <ol className="list-decimal pl-5 space-y-3 [&_li]:pl-1 [&_b]:text-white">{children}</ol>;
 }
@@ -122,10 +139,51 @@ export default async function Tutorial() {
               Meta exige que cada persona use su propia “app” para dar permiso de lectura. No es una app que se publica: queda en modo desarrollo, solo para vos, y no pide verificación de empresa.
             </p>
             <Steps>
-              <li><Tool t="meta" />Entrá a <a href="https://developers.facebook.com/apps" target="_blank" rel="noreferrer" className={link}>developers.facebook.com/apps</a> con tu Facebook y tocá <b>Crear app</b>.</li>
-              <li><Tool t="meta" />Nombre: el que quieras. Tipo de app: <b>Empresa</b> (Business). Si pregunta por un portafolio comercial, elegí <b>No conectar</b>.</li>
-              <li><Tool t="meta" />En el panel de la app: <b>Agregar producto → Inicio de sesión con Facebook (Facebook Login)</b>. En su configuración, en <b>URI de redireccionamiento de OAuth válidos</b>, pegá:
+              <li>
+                <Tool t="meta" />Entrá a <a href="https://developers.facebook.com/apps" target="_blank" rel="noreferrer" className={link}>developers.facebook.com/apps</a> con tu Facebook y tocá <b>Crear aplicación</b> (botón verde, arriba a la derecha).
+                <Shot src="/tutorial/meta-1-apps.png" alt="Lista de aplicaciones de Meta for Developers" marks={[{ x: 74.3, y: 6.1, w: 5.3, h: 2.8, label: "Crear aplicación" }]} />
+              </li>
+              <li>
+                <Tool t="meta" />Paso <b>Detalles de la aplicación</b>: poné el nombre que quieras y tu email de contacto. Tocá <b>Siguiente</b>.
+                <Shot src="/tutorial/meta-2-detalles.png" alt="Crear una aplicación: nombre y correo" marks={[
+                  { x: 31, y: 21, w: 38, h: 2.8, label: "Nombre" },
+                  { x: 31, y: 30.6, w: 38, h: 2.8, label: "Tu email" },
+                  { x: 65.3, y: 34.3, w: 3.7, h: 2.8 },
+                ]} />
+              </li>
+              <li>
+                <Tool t="meta" />Paso <b>Casos de uso</b>: marcá <b>Mide los datos de rendimiento de tus anuncios con la API de marketing</b> y tocá <b>Siguiente</b> (abajo, en la misma pantalla). Solo te deja marcar uno: está bien, el “Inicio de sesión con Facebook” se agrega solo después.
+                <Shot tall src="/tutorial/meta-3-casos.png" alt="Añadir casos de uso" marks={[
+                  { x: 42.2, y: 14.5, w: 26.7, h: 4.3, label: "Marcá este" },
+                  { x: 65.3, y: 97, w: 3.8, h: 1.5 },
+                ]} />
+              </li>
+              <li>
+                <Tool t="meta" />Paso <b>Empresa</b>: elegí <b>Aún no quiero conectar un portfolio empresarial</b> y <b>Siguiente</b>.
+                <Shot src="/tutorial/meta-4-empresa.png" alt="Paso Empresa" marks={[
+                  { x: 30.9, y: 33.7, w: 14, h: 2.1 },
+                  { x: 65.3, y: 40, w: 3.7, h: 2.8 },
+                ]} />
+              </li>
+              <li>
+                <Tool t="meta" />Paso <b>Requisitos</b>: dice “No se han identificado requisitos”. Tocá <b>Siguiente</b>.
+                <Shot src="/tutorial/meta-5-requisitos.png" alt="Paso Requisitos" marks={[{ x: 65.3, y: 28.9, w: 3.7, h: 2.7 }]} />
+              </li>
+              <li>
+                <Tool t="meta" />Paso <b>Información general</b>: revisá el resumen y tocá <b>Crear aplicación</b>.
+                <Shot src="/tutorial/meta-6-resumen.png" alt="Resumen antes de crear la app" marks={[{ x: 63.7, y: 62, w: 5.3, h: 2.8, label: "Crear aplicación" }]} />
+              </li>
+              <li>
+                <Tool t="meta" />Ya en el <b>Panel</b> de tu app (dice <b>Sin publicar</b>: perfecto, es lo que queremos), en el menú de la izquierda tocá <b>Inicio de sesión con Facebook → Configuración</b>.
+                <Shot src="/tutorial/meta-7-panel.png" alt="Panel de la app" marks={[{ x: 0.3, y: 20.6, w: 11.1, h: 6, label: "Acá" }]} />
+              </li>
+              <li>
+                <Tool t="meta" />En <b>URI de redireccionamiento de OAuth válidos</b> pegá esta dirección y tocá <b>Guardar cambios</b>:
                 <Code text={`${base}/api/meta/callback`} />
+                <Shot src="/tutorial/meta-8-oauth.png" alt="Configuración del cliente de OAuth" marks={[
+                  { x: 31.5, y: 40.9, w: 48.7, h: 2.1, label: "Pegá la URI" },
+                  { x: 75.3, y: 81.9, w: 5.6, h: 2.4 },
+                ]} />
               </li>
               <li><Tool t="meta" />Dejá la app en <b>modo Desarrollo</b> (no la pases a “Live”). Con tu propia cuenta como administrador alcanza.</li>
               <li><Tool t="meta" />En <b>Configuración de la app → Básica</b> copiá el <b>ID de la app</b> y la <b>Clave secreta</b>.</li>
