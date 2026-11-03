@@ -18,10 +18,11 @@ export function TokenNotice({ days, needsApp, weakPass }: { days?: number; needs
         Falta cargar el App ID y el App Secret de tu app de Meta. Tocá acá para completarlos.
       </a>
     );
-  if (days === undefined || days > 7) return null;
+  if (days === undefined || days > 10) return null;
   return (
     <a href="/api/meta/connect" className="block mb-4 rounded-lg border border-bad/50 bg-bad/10 px-3 py-2 text-bad">
-      {days < 0 ? "La conexión con Meta venció: el gasto ya no se actualiza." : `La conexión con Meta vence en ${days} día(s).`} Tocá acá para reconectar.
+      {days < 0 ? "La conexión con Meta venció: el gasto ya no se actualiza." : `La conexión con Meta vence en ${days} día(s) (dura 60 y no se renovó sola).`}{" "}
+      Para reconectar: tocá acá (o Ajustes → «Conectar / reconectar con Meta»), iniciá sesión con Facebook y aceptá los permisos. Tarda 1 minuto y no perdés datos.
     </a>
   );
 }

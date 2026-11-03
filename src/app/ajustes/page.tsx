@@ -49,6 +49,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
   const set = q("select 1 from setting where project_id=? and key='usd_rate'", pid).length > 0;
   const active = await activeDashboard();
   const since = Number(q1<{ value: string }>("select value from setting where project_id=? and key='sales_since'", pid)?.value) || 0;
+  const tax = Number(q1<{ value: string }>("select value from setting where project_id=? and key='tax_pct'", pid)?.value) || 0;
   const sinceDay = since ? new Date(since).toLocaleDateString("sv-SE") : "";
   const saved$ = (product: string) => q1<{ value: string }>("select value from setting where project_id=? and key=?", pid, `price:${product}`)?.value;
   type Row = { product: string; type: string | null; n: number; avg: number; net: number | null };
@@ -97,6 +98,14 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
             <span className="text-muted">ARS</span>
           </div>
           <div className="flex items-center gap-3 flex-wrap mt-3">
+            <label htmlFor="tax" className="text-muted">Impuestos y comisiones</label>
+            <input id="tax" name="tax" defaultValue={tax || ""} placeholder="ej. 21" inputMode="decimal" className={`${field} w-24`} />
+            <span className="text-muted">% del precio bruto</span>
+          </div>
+          <p className="text-xs text-muted mt-2">
+            Sumá todos los porcentajes (IVA, pasarela, etc.). El neto de cada producto sin monto cargado a mano será precio × (1 − %).
+          </p>
+          <div className="flex items-center gap-3 flex-wrap mt-3">
             <label htmlFor="since" className="text-muted">Contar ventas desde</label>
             <input id="since" name="since" type="date" defaultValue={sinceDay} className={`${field} w-44`} />
           </div>
@@ -127,9 +136,9 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
                     <input aria-label={`Precio de venta de ${p.product}`} name={`price_${i}`} defaultValue={saved$(p.product) ?? (info.get(p.product)?.price || (p.n ? Math.round(p.avg) : ""))} placeholder="ej. 16990" inputMode="decimal" className={`${field} w-32`} />
                   </td>
                   <td className={td}>
-                    <input aria-label={`Neto en ARS de ${p.product}`} name={`net_${i}`} defaultValue={p.net ?? ""} placeholder="ej. 38000" inputMode="decimal" className={`${field} w-36`} />
+                    <input aria-label={`Neto en ARS de ${p.product}`} name={`net_${i}`} defaultValue={p.net ?? ""} placeholder="auto" inputMode="decimal" className={`${field} w-36`} />
                   </td>
-                  <td className={`${td} text-good`}>{p.net ? money(p.net / rate) : "—"}</td>
+                  <td className={`${td} text-good`}>{money((p.net ?? Number(saved$(p.product) ?? info.get(p.product)?.price ?? 0) * (1 - tax / 100)) / rate)}</td>
                 </tr>
               ))}
               {!products.length && <tr><td className={`${td} text-muted`} colSpan={5}>Todavía no hay ventas con producto en el dashboard «{active?.name ?? "—"}». Aparecerán acá cuando entre la primera.</td></tr>}
@@ -137,7 +146,7 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
           </table>
         </Card>
         <p className="text-xs text-muted">
-          Ganancia neta = (lo que te queda por producto ÷ dólar) − gasto en anuncios. Producto sin monto cargado: se usa el precio de venta completo.
+          Ganancia neta = (lo que te queda por producto ÷ dólar) − gasto en anuncios. Producto sin monto cargado: se usa el precio de venta menos el % de impuestos de arriba.
         </p>
         <button className="px-4 py-2 rounded-lg bg-accent text-on-accent font-medium neon">Guardar</button>
       </form>

@@ -22,10 +22,12 @@ export const usdRate = (pid: number) => {
   return v > 0 ? v : 1;
 };
 const grossUsd = (c: string, r: number) => `(case when ${c}.currency='USD' then ${c}.value else ${c}.value/${r} end)`;
+// Taxes/fees: `tax_pct` (setting) comes off the gross price of every product that has no manual net.
+const taxFactor = (c: string) => `(1 - coalesce((select cast(value as real) from setting where project_id=${c}.project_id and key='tax_pct'),0)/100.0)`;
 const netUsd = (c: string, r: number) =>
-  `(case when ${c}.currency='USD' then ${c}.value else coalesce(
-    (select sum(coalesce(n.net_ars, (select cast(value as real) from setting where project_id=${c}.project_id and key='price:'||i.name), i.price) * i.qty) from conversion_item i left join product_net n on n.project_id=${c}.project_id and n.product=i.name where i.conversion_id=${c}.id),
-    (select n.net_ars from product_net n where n.project_id=${c}.project_id and n.product=${c}.product), ${c}.value)/${r} end)`;
+  `(case when ${c}.currency='USD' then ${c}.value * ${taxFactor(c)} else coalesce(
+    (select sum(coalesce(n.net_ars, coalesce((select cast(value as real) from setting where project_id=${c}.project_id and key='price:'||i.name), i.price) * ${taxFactor(c)}) * i.qty) from conversion_item i left join product_net n on n.project_id=${c}.project_id and n.product=i.name where i.conversion_id=${c}.id),
+    (select n.net_ars from product_net n where n.project_id=${c}.project_id and n.product=${c}.product), ${c}.value * ${taxFactor(c)})/${r} end)`;
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const parseDay = (v?: string) => {
