@@ -24,7 +24,7 @@ export const usdRate = (pid: number) => {
 const grossUsd = (c: string, r: number) => `(case when ${c}.currency='USD' then ${c}.value else ${c}.value/${r} end)`;
 const netUsd = (c: string, r: number) =>
   `(case when ${c}.currency='USD' then ${c}.value else coalesce(
-    (select sum(coalesce(n.net_ars, i.price) * i.qty) from conversion_item i left join product_net n on n.project_id=${c}.project_id and n.product=i.name where i.conversion_id=${c}.id),
+    (select sum(coalesce(n.net_ars, (select cast(value as real) from setting where project_id=${c}.project_id and key='price:'||i.name), i.price) * i.qty) from conversion_item i left join product_net n on n.project_id=${c}.project_id and n.product=i.name where i.conversion_id=${c}.id),
     (select n.net_ars from product_net n where n.project_id=${c}.project_id and n.product=${c}.product), ${c}.value)/${r} end)`;
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -62,7 +62,9 @@ export function range(p: Period, f?: string, t?: string): { from: number; to: nu
 // Sales of one ad account = conversions whose attributed campaign has spend in that account.
 // Expects `c` = conversion alias; placeholders: model, project_id, ad_account_id.
 // Unattributed imported sales (channel sin_atribucion) store the ad account id in ca_id, so they count for that dashboard too.
-export const ACC_SALES = `c.id in (select a.conversion_id from attribution a where a.model=? and a.ca_id in
+// Sales older than the `sales_since` setting (ms) are ignored: a recycled ad account can carry another product's history.
+export const ACC_SALES = `c.ts >= coalesce((select cast(value as integer) from setting where project_id=c.project_id and key='sales_since'),0)
+  and c.id in (select a.conversion_id from attribution a where a.model=? and a.ca_id in
   (select x from (select campaign_id x, project_id, ad_account_id from meta_ad_day
                   union all select ad_account_id, project_id, ad_account_id from meta_ad_day) where project_id=? and ad_account_id=?))`;
 

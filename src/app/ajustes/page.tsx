@@ -48,16 +48,30 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
   const rate = usdRate(pid);
   const set = q("select 1 from setting where project_id=? and key='usd_rate'", pid).length > 0;
   const active = await activeDashboard();
-  const sold = q<{ product: string; n: number; avg: number; net: number | null }>(
-    `select c.product, count(*) n, avg(c.value) avg,
-            (select net_ars from product_net n where n.project_id=c.project_id and n.product=c.product) net
-       from conversion c where c.project_id=? and c.product is not null and ${active ? ACC_SALES : "1=0"} group by c.product order by n desc`,
-    pid,
-    ...(active ? ["last_touch", pid, active.ad_account_id] : []),
-  );
-  // Products the store's webhooks have mentioned but that have no sale yet (n = 0).
-  const seen = !active ? [] : q<{ product: string; net: number | null }>(
-    `select substr(s.key, instr(s.key,'|')+1) product,
+  const since = Number(q1<{ value: string }>("select value from setting where project_id=? and key='sales_since'", pid)?.value) || 0;
+  const sinceDay = since ? new Date(since).toLocaleDateString("sv-SE") : "";
+  const saved$ = (product: string) => q1<{ value: string }>("select value from setting where project_id=? and key=?", pid, `price:${product}`)?.value;
+  type Row = { product: string; type: string | null; n: number; avg: number; net: number | null };
+  const accArgs = active ? ["last_touch", pid, active.ad_account_id] : [];
+  const net = `(select net_ars from product_net n where n.project_id=c.project_id and n.product=`;
+  // Per line item (main + upsells) for orders that carry items; older orders only know their first product.
+  const sold = [
+    ...q<Row>(
+      `select i.name product, i.type, count(*) n, avg(i.price) avg, ${net}i.name) net
+         from conversion_item i join conversion c on c.id=i.conversion_id
+        where c.project_id=? and ${active ? ACC_SALES : "1=0"} group by i.name, i.type`,
+      pid, ...accArgs,
+    ),
+    ...q<Row>(
+      `select c.product, null type, count(*) n, avg(c.value) avg, ${net}c.product) net
+         from conversion c where c.project_id=? and c.product is not null
+          and not exists (select 1 from conversion_item i where i.conversion_id=c.id) and ${active ? ACC_SALES : "1=0"} group by c.product`,
+      pid, ...accArgs,
+    ),
+  ];
+  // Products the store's webhooks have mentioned (type|price from Impultienda), sold or not.
+  const seen = !active ? [] : q<{ product: string; info: string; net: number | null }>(
+    `select substr(s.key, instr(s.key,'|')+1) product, s.value info,
             (select net_ars from product_net n where n.project_id=s.project_id and n.product=substr(s.key, instr(s.key,'|')+1)) net
        from setting s
       where s.project_id=? and s.key like 'store_prod:%'
@@ -65,7 +79,11 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
                      and m.key='store_dash:'||substr(s.key,12,instr(s.key,'|')-12) and m.value=?)`,
     pid, active.ad_account_id,
   );
-  const products = [...sold, ...seen.filter((s) => !sold.some((p) => p.product === s.product)).map((s) => ({ ...s, n: 0, avg: 0 }))];
+  const info = new Map(seen.map((s) => { const [t, p] = s.info.split("|"); return [s.product, { type: t === "upsell" || t === "main" ? t : null, price: Number(p) || 0 }]; }));
+  const products = [
+    ...sold.map((p) => ({ ...p, type: p.type ?? info.get(p.product)?.type ?? null })),
+    ...seen.filter((s) => !sold.some((p) => p.product === s.product)).map((s) => ({ product: s.product, net: s.net, n: 0, avg: 0, type: info.get(s.product)?.type ?? null })),
+  ].sort((a, b) => (a.type === "upsell" ? 1 : 0) - (b.type === "upsell" ? 1 : 0) || b.n - a.n);
 
   return (
     <>
@@ -78,6 +96,13 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
             <input id="rate" name="rate" defaultValue={set ? rate : ""} placeholder="1200" inputMode="decimal" className={`${field} w-32`} />
             <span className="text-muted">ARS</span>
           </div>
+          <div className="flex items-center gap-3 flex-wrap mt-3">
+            <label htmlFor="since" className="text-muted">Contar ventas desde</label>
+            <input id="since" name="since" type="date" defaultValue={sinceDay} className={`${field} w-44`} />
+          </div>
+          <p className="text-xs text-muted mt-2">
+            Ignora ventas anteriores a esa fecha (útil si la cuenta publicitaria se reciclaba de otro producto). Vacío = todas.
+          </p>
           <p className="text-xs text-muted mt-2">
             Las ventas de Impultienda llegan en pesos y el gasto de Meta en dólares. Con este valor todo el panel se muestra en USD.
             {!set && " Sin cargarlo, los pesos se muestran como si fueran dólares."}
@@ -95,9 +120,12 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
                   <td className={td}>
                     <input type="hidden" name={`product_${i}`} value={p.product} />
                     {p.product}
+                    {p.type && <span className="text-muted text-xs"> · {p.type === "upsell" ? "upsell" : "principal"}</span>}
                   </td>
                   <td className={td}>{p.n}</td>
-                  <td className={td}>{p.n ? money(p.avg) : "—"}</td>
+                  <td className={td}>
+                    <input aria-label={`Precio de venta de ${p.product}`} name={`price_${i}`} defaultValue={saved$(p.product) ?? (info.get(p.product)?.price || (p.n ? Math.round(p.avg) : ""))} placeholder="ej. 16990" inputMode="decimal" className={`${field} w-32`} />
+                  </td>
                   <td className={td}>
                     <input aria-label={`Neto en ARS de ${p.product}`} name={`net_${i}`} defaultValue={p.net ?? ""} placeholder="ej. 38000" inputMode="decimal" className={`${field} w-36`} />
                   </td>

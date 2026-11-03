@@ -52,8 +52,10 @@ export async function POST(req: Request, ctx: { params: Promise<{ platform: stri
     // Remember the products of every event (tests included) so Ajustes can list them before the first real sale.
     const items = (data as { items?: unknown } | undefined)?.items;
     for (const it of Array.isArray(items) ? items.slice(0, 20) : []) {
-      const name = clip((it as { name?: unknown } | null)?.name, 120);
-      if (name) run("insert or ignore into setting(project_id,key,value) values(?,?,?)", hook.project_id, `store_prod:${storeId}|${name}`, "1");
+      const { name: n, type, price } = (it ?? {}) as { name?: unknown; type?: unknown; price?: unknown };
+      const name = clip(n, 120);
+      // value = "<main|upsell>|<price>", refreshed on every event so Ajustes shows the current Impultienda price.
+      if (name) run("insert or replace into setting(project_id,key,value) values(?,?,?)", hook.project_id, `store_prod:${storeId}|${name}`, `${type === "upsell" ? "upsell" : "main"}|${Number(price) || ""}`);
     }
   }
 
