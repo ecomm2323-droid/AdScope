@@ -7,6 +7,15 @@ const FIELDS = "campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,spen
 export const appUrl = () => process.env.APP_URL ?? "http://localhost:3000";
 export const redirectUri = () => `${appUrl()}/api/meta/callback`;
 
+// Meta app credentials: env wins unless empty/"pendiente" (Railway template placeholder); otherwise the ones saved in Ajustes.
+export function metaApp(pid = getProject().id): { id: string; secret: string } | undefined {
+  const ok = (v?: string) => (v && v.trim() && v.trim() !== "pendiente" ? v.trim() : undefined);
+  const get = (k: string) => q1<{ value: string }>("select value from setting where project_id=? and key=?", pid, k)?.value;
+  const id = ok(process.env.META_APP_ID) ?? ok(get("meta_app_id"));
+  const secret = ok(process.env.META_APP_SECRET) ?? ok(get("meta_app_secret"));
+  return id && secret ? { id, secret } : undefined;
+}
+
 // META_ACCESS_TOKEN in .env.local (e.g. a non-expiring System User token) wins; the OAuth token saved by /api/meta/callback is the fallback.
 export function metaToken(pid: number): string | undefined {
   if (process.env.META_ACCESS_TOKEN) return process.env.META_ACCESS_TOKEN;
@@ -33,9 +42,9 @@ export async function checkAccount(account: string, pid = getProject().id): Prom
 
 // Code from the login dialog -> short token -> long-lived token (~60 days).
 export async function exchangeCode(code: string) {
-  const client_id = process.env.META_APP_ID;
-  const client_secret = process.env.META_APP_SECRET;
-  if (!client_id || !client_secret) throw new Error("Faltan META_APP_ID o META_APP_SECRET en .env.local");
+  const app = metaApp();
+  if (!app) throw new Error("Faltan el App ID y el App Secret de Meta: cargalos en Ajustes.");
+  const client_id = app.id, client_secret = app.secret;
   const short = await graph<{ access_token: string }>(
     "/oauth/access_token?" + new URLSearchParams({ client_id, client_secret, redirect_uri: redirectUri(), code }),
   );
@@ -208,8 +217,8 @@ export async function renewToken(pid = getProject().id): Promise<boolean> {
   const c = q1<{ access_token: string; expires_at: number }>(
     "select access_token, expires_at from meta_connection where project_id=?", pid,
   );
-  const client_id = process.env.META_APP_ID;
-  const client_secret = process.env.META_APP_SECRET;
+  const app = metaApp(pid);
+  const client_id = app?.id, client_secret = app?.secret;
   if (!c || !client_id || !client_secret || c.expires_at <= Date.now() || c.expires_at - Date.now() > 30 * DAY) return false;
   const t = await graph<{ access_token: string; expires_in?: number }>(
     "/oauth/access_token?" +

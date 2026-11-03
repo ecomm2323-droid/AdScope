@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { headers } from "next/headers";
 import { getProject, q1 } from "@/lib/db";
-import { tokenDaysLeft } from "@/lib/meta";
+import { tokenDaysLeft, metaApp } from "@/lib/meta";
 import { Card } from "@/components/ui";
 import { CopyButton } from "@/components/copy-button";
 
@@ -12,6 +12,9 @@ const UTMS =
   "utm_source=FB&utm_campaign={{campaign.name}}|{{campaign.id}}&utm_medium={{adset.name}}|{{adset.id}}&utm_content={{ad.name}}|{{ad.id}}&utm_term={{placement}}";
 
 const link = "underline text-accent";
+
+// Public Railway template (one-click deploy); set once published.
+const RAILWAY_TEMPLATE = process.env.NEXT_PUBLIC_RAILWAY_TEMPLATE ?? "";
 
 function Code({ text }: { text: string }) {
   return (
@@ -89,7 +92,8 @@ export default async function Tutorial() {
   const pixel = `<script async src="${base}/tracker.js" data-key="${project.public_key}" data-decorate="TU-CHECKOUT.impultienda.com"></script>`;
 
   const steps: { id: string; label: string; ok: boolean }[] = [
-    { id: "s0", label: "App de Meta configurada (META_APP_ID y META_APP_SECRET)", ok: !!process.env.META_APP_ID && !!process.env.META_APP_SECRET },
+    { id: "sr", label: "Publicada en Railway (APP_URL y APP_PASSWORD)", ok: !!process.env.APP_URL && !!process.env.APP_PASSWORD },
+    { id: "s0", label: "App ID y Secret de Meta cargados (Credenciales)", ok: !!metaApp(pid) },
     { id: "s1", label: "Meta conectado (token vigente)", ok: tokenDaysLeft(pid) !== undefined || !!process.env.META_ACCESS_TOKEN },
     { id: "s1", label: "Dashboard con tu cuenta publicitaria", ok: count("select count(*) n from dashboard where project_id=?", pid) > 0 },
     { id: "s1", label: "Gasto de Meta sincronizado", ok: count("select count(*) n from meta_ad_day where project_id=?", pid) > 0 },
@@ -104,7 +108,7 @@ export default async function Tutorial() {
     <>
       <h1>Tutorial de conexión</h1>
       <p className="text-muted mb-4">
-        Cinco pasos, en este orden. Cada paso dice en qué herramienta se hace con una etiqueta:{" "}
+        Seis pasos, en este orden. Cada paso dice en qué herramienta se hace con una etiqueta:{" "}
         <Tool t="app" /><Tool t="meta" /><Tool t="ads" /><Tool t="imp" /><Tool t="web" /><Tool t="host" />
         Tarda unos 30 minutos la primera vez.
       </p>
@@ -133,10 +137,27 @@ export default async function Tutorial() {
           </dl>
         </Card>
 
-        <div id="s0" className="scroll-mt-20">
-          <Card title="0 · Preparar tu propia app de Meta (una sola vez)">
+        <div id="sr" className="scroll-mt-20">
+          <Card title="0 · Publicar esta herramienta en Railway (primero que todo)">
             <p className="text-muted mb-3">
-              Meta exige que cada persona use su propia “app” para dar permiso de lectura. No es una app que se publica: queda en modo desarrollo, solo para vos, y no pide verificación de empresa.
+              Railway es el servidor donde vive la herramienta, prendida 24 horas. Lo hacemos primero porque necesitás la dirección pública (URL) que te da para los pasos de Meta e Impultienda. Plan Hobby, unos 5 USD por mes.
+            </p>
+            <Steps>
+              <li><Tool t="host" />Tocá el botón <b>Desplegar en Railway</b>{RAILWAY_TEMPLATE ? <> <a href={RAILWAY_TEMPLATE} target="_blank" rel="noreferrer" className="inline-block rounded-lg bg-accent px-3 py-1 text-xs font-semibold text-on-accent no-underline">Desplegar en Railway</a></> : " (el link te lo pasa quien te vendió la herramienta)"}. Creá la cuenta si no tenés (plan Hobby, unos 5 USD por mes).</li>
+              <li><Tool t="host" />Completá <code>APP_PASSWORD</code> con una contraseña larga que inventes (es la que vas a usar para entrar). <b>No toques</b> <code>META_APP_ID</code> ni <code>META_APP_SECRET</code>: dejalos en <code>pendiente</code>, los cargás después dentro de la herramienta. Tocá <b>Deploy</b> y esperá a que termine.</li>
+              <li><Tool t="host" />Abrí el servicio → <b>Settings → Networking</b>: ahí está tu URL pública (algo como <code>https://xxx.up.railway.app</code>). Abrila: tiene que pedirte la contraseña. Entrá con ella.</li>
+            </Steps>
+            <Check
+              ok="la pantalla de login con tu URL de Railway, y al entrar ves el Resumen."
+              fix="si dice “Falta la variable APP_PASSWORD”, no se guardó: revisá Variables en Railway y esperá el redeploy. Si no abre, mirá Deployments → View logs."
+            />
+          </Card>
+        </div>
+
+        <div id="s0" className="scroll-mt-20">
+          <Card title="1 · Crear tu propia app de Meta (una sola vez)">
+            <p className="text-muted mb-3">
+              Anotá el App ID y el App Secret en un bloc de notas cuando los veas: los vas a pegar en la herramienta al final. Meta exige que cada persona use su propia “app” para dar permiso de lectura. No es una app que se publica: queda en modo desarrollo, solo para vos, y no pide verificación de empresa.
             </p>
             <Steps>
               <li>
@@ -186,25 +207,22 @@ export default async function Tutorial() {
                 ]} />
               </li>
               <li><Tool t="meta" />Dejá la app en <b>modo Desarrollo</b> (no la pases a “Live”). Con tu propia cuenta como administrador alcanza.</li>
-              <li><Tool t="meta" />En <b>Configuración de la app → Básica</b> copiá el <b>ID de la app</b> y la <b>Clave secreta</b>.</li>
-              <li><Tool t="host" />En tu servicio de Railway → <b>Variables</b>, cargá estas tres y redeployá:
-                <Code text={`META_APP_ID=el-id-que-copiaste\nMETA_APP_SECRET=la-clave-secreta\nAPP_URL=${base}`} />
-              </li>
-              <li><Tool t="host" />Para que no se borren los datos al redeployar: <b>Volumes</b> → agregá un volumen y la variable <code>DATA_DIR</code> con la ruta donde lo montaste (por ejemplo <code>/data</code>).</li>
+              <li><Tool t="meta" />En <b>Configuración de la aplicación → Básica</b> (menú de la izquierda, abajo) copiá el <b>Identificador de la aplicación</b> y la <b>Clave secreta</b> (tocá <b>Mostrar</b>; Facebook te pide tu contraseña).</li>
+              <li><Tool t="app" />Volvé a esta herramienta → <Link href="/credenciales" className={link}>Credenciales</Link> → <b>Tu app de Meta</b>: pegá el App ID y el App Secret y tocá <b>Guardar app de Meta</b>.</li>
             </Steps>
             <Check
-              ok="el primer ítem de tu progreso (arriba) queda en ✓."
+              ok="el ítem «App ID y Secret de Meta cargados» de tu progreso (arriba) queda en ✓."
               fix="si Meta dice “redirect_uri no coincide” al conectar, la URI del paso 3 no es idéntica a la de APP_URL (revisá https, barras y mayúsculas)."
             />
           </Card>
         </div>
 
         <div id="s1" className="scroll-mt-20">
-          <Card title="1 · Conectar Meta (para traer los gastos)">
+          <Card title="2 · Conectar Meta (para traer los gastos)">
             <Steps>
-              <li><Tool t="app" />Andá a <Link href="/ajustes" className={link}>Ajustes</Link> y tocá <b>Conectar / reconectar con Meta</b>.</li>
+              <li><Tool t="app" />Andá a <Link href="/credenciales" className={link}>Credenciales</Link> y tocá <b>Conectar / reconectar con Meta</b>.</li>
               <li><Tool t="meta" />Se abre Facebook. Entrá con la cuenta que administra tus anuncios y aceptá los permisos (solo pide <i>leer</i> anuncios, no puede publicar ni gastar).</li>
-              <li><Tool t="app" />Volvés a esta herramienta. En <Link href="/ajustes" className={link}>Ajustes</Link>, junto al botón, tiene que decir <b>token vigente</b>.</li>
+              <li><Tool t="app" />Volvés a esta herramienta. En <Link href="/credenciales" className={link}>Credenciales</Link>, junto al botón, tiene que decir <b>token vigente</b>.</li>
               <li>
                 <Tool t="ads" />Entrá a <a href="https://adsmanager.facebook.com" target="_blank" rel="noreferrer" className={link}>adsmanager.facebook.com</a> y elegí tu cuenta. Fijate en la barra de direcciones del navegador: aparece <code>act=1234567890</code>. Ese número es el <b>ID de tu cuenta publicitaria</b>. Copialo.
               </li>
@@ -222,7 +240,7 @@ export default async function Tutorial() {
         </div>
 
         <div id="s2" className="scroll-mt-20">
-          <Card title="2 · Conectar Impultienda (para traer las ventas)">
+          <Card title="3 · Conectar Impultienda (para traer las ventas)">
             <Steps>
               <li>
                 <Tool t="app" />Andá a <Link href="/integraciones?tab=webhooks" className={link}>Integraciones → Webhooks</Link>, elegí <b>impultienda</b> y tocá <b>Agregar webhook</b>. Te da una dirección (URL) personal.
@@ -244,7 +262,7 @@ export default async function Tutorial() {
         </div>
 
         <div id="s3" className="scroll-mt-20">
-          <Card title="3 · Pixel y UTMs (para saber de qué anuncio vino cada venta)">
+          <Card title="4 · Pixel y UTMs (para saber de qué anuncio vino cada venta)">
             <p className="text-muted mb-2">Sin esto las ventas se cuentan igual, pero como “Sin atribución”. Son dos cosas:</p>
             <Steps>
               <li>
@@ -269,7 +287,7 @@ export default async function Tutorial() {
         </div>
 
         <div id="s4" className="scroll-mt-20">
-          <Card title="4 · Dólar y costos (para que el ROAS y la ganancia estén bien)">
+          <Card title="5 · Dólar y costos (para que el ROAS y la ganancia estén bien)">
             <Steps>
               <li><Tool t="app" />En <Link href="/ajustes" className={link}>Ajustes</Link> cargá la cotización: <b>1 USD = cuántos pesos</b>. Las ventas llegan en pesos y el gasto de Meta en dólares; sin esto el panel mezcla monedas.</li>
               <li><Tool t="app" />En la misma pantalla, por cada producto, cargá <b>cuánto te queda tras impuestos</b>. Así la ganancia es real y no solo facturación.</li>

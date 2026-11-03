@@ -13,6 +13,7 @@ const NAV: { href: string; label: string; icon: string }[] = [
   { href: "/utms", label: "UTMs", icon: "⌗" },
   { href: "/integraciones", label: "Integraciones", icon: "⇄" },
   { href: "/dashboards", label: "Dashboards", icon: "▦" },
+  { href: "/credenciales", label: "Credenciales", icon: "🔑" },
   { href: "/ajustes", label: "Ajustes", icon: "⚙" },
   { href: "/tutorial", label: "Tutorial", icon: "?" },
 ];
@@ -46,7 +47,7 @@ export function Sidebar({ dashes, active }: { dashes: Dash[]; active?: number })
   return (
     <>
       <header className="hidden md:flex sticky top-0 z-30 items-center gap-4 px-6 py-4 bg-bg/80 backdrop-blur">
-        <span className="text-base font-semibold tracking-tight shrink-0"><span className="text-accent">✦</span> Attribution</span>
+        <span className="text-base font-semibold tracking-tight shrink-0"><span className="text-accent">✦</span> Adscope</span>
         <nav className="glass rounded-full p-1.5 flex gap-1 mx-auto overflow-x-auto no-scrollbar" aria-label="Principal">
           {NAV.map((n) => {
             const on = isOn(n.href);
@@ -80,7 +81,7 @@ export function Sidebar({ dashes, active }: { dashes: Dash[]; active?: number })
         >
           ☰
         </button>
-        <span className="font-semibold"><span className="text-accent">✦</span> Attribution</span>
+        <span className="font-semibold"><span className="text-accent">✦</span> Adscope</span>
         <span className="ml-auto text-xs text-muted truncate max-w-[40%]">{cur?.name}</span>
       </header>
       {open && <div className="md:hidden fixed inset-0 z-30 bg-black/60" onClick={() => setOpen(false)} aria-hidden />}
@@ -89,7 +90,7 @@ export function Sidebar({ dashes, active }: { dashes: Dash[]; active?: number })
           transition-transform duration-200 ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
         <div className="px-2 py-3 mb-1 text-base font-semibold tracking-tight flex items-center">
-          <span><span className="text-accent">✦</span> Attribution</span>
+          <span><span className="text-accent">✦</span> Adscope</span>
           <button type="button" aria-label="Cerrar menú" onClick={() => setOpen(false)} className="ml-auto h-11 w-11 -mr-2 grid place-items-center rounded-full hover:bg-white/10">✕</button>
         </div>
         <div className="mb-3">{switcher}</div>

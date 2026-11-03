@@ -1,10 +1,10 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
-import { redirectUri } from "@/lib/meta";
+import { appUrl, metaApp, redirectUri } from "@/lib/meta";
 
 export function GET() {
-  const client_id = process.env.META_APP_ID;
-  if (!client_id) return NextResponse.json({ ok: false, error: "Falta META_APP_ID en .env.local" }, { status: 500 });
+  const client_id = metaApp()?.id;
+  if (!client_id) return NextResponse.redirect(new URL("/credenciales?meta=falta", appUrl()));
 
   const state = randomBytes(16).toString("hex");
   const url = new URL("https://www.facebook.com/v25.0/dialog/oauth");

@@ -3,13 +3,13 @@ import "./globals.css";
 import { Sidebar } from "@/components/sidebar";
 import { getProject } from "@/lib/db";
 import { dashboards } from "@/lib/dashboards";
-import { tokenDaysLeft } from "@/lib/meta";
+import { tokenDaysLeft, metaApp } from "@/lib/meta";
 import { TokenNotice } from "@/components/token-notice";
 import { activeDashboard } from "@/lib/active-dashboard";
 
 export const metadata: Metadata = {
-  title: { default: "Attribution", template: "%s · Attribution" },
-  description: "Ad attribution and tracking",
+  title: { default: "Adscope", template: "%s · Adscope" },
+  description: "Atribución de ventas y anuncios",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -19,7 +19,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="es" className="h-full antialiased">
       <body className="min-h-full flex flex-col font-sans text-sm">
         <Sidebar dashes={dashes} active={active} />
-        <main className="flex-1 min-w-0 p-4 md:px-6 md:py-4 w-full"><TokenNotice days={tokenDaysLeft()} />{children}</main>
+        <main className="flex-1 min-w-0 p-4 md:px-6 md:py-4 w-full"><TokenNotice days={tokenDaysLeft()} needsApp={!metaApp()} />{children}</main>
       </body>
     </html>
   );
