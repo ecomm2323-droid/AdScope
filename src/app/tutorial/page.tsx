@@ -13,8 +13,8 @@ const UTMS =
 
 const link = "underline text-accent";
 
-// Public Railway template (one-click deploy); set once published.
-const RAILWAY_TEMPLATE = process.env.NEXT_PUBLIC_RAILWAY_TEMPLATE ?? "";
+// Public Railway template (one-click deploy).
+const RAILWAY_TEMPLATE = "https://railway.com/deploy/adscope";
 
 function Code({ text }: { text: string }) {
   return (
