@@ -23,7 +23,9 @@ export const usdRate = (pid: number) => {
 };
 const grossUsd = (c: string, r: number) => `(case when ${c}.currency='USD' then ${c}.value else ${c}.value/${r} end)`;
 const netUsd = (c: string, r: number) =>
-  `(case when ${c}.currency='USD' then ${c}.value else coalesce((select n.net_ars from product_net n where n.project_id=${c}.project_id and n.product=${c}.product), ${c}.value)/${r} end)`;
+  `(case when ${c}.currency='USD' then ${c}.value else coalesce(
+    (select sum(coalesce(n.net_ars, i.price) * i.qty) from conversion_item i left join product_net n on n.project_id=${c}.project_id and n.product=i.name where i.conversion_id=${c}.id),
+    (select n.net_ars from product_net n where n.project_id=${c}.project_id and n.product=${c}.product), ${c}.value)/${r} end)`;
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const parseDay = (v?: string) => {
@@ -222,7 +224,7 @@ export type SaleRow = {
   id: number; ts: number; order_id: string; status: string; value: number; currency: string | null;
   platform: string | null; product: string | null; payment_method: string | null; email: string | null;
   channel: string | null; campaign: string | null; ad_name: string | null; ad_id: string | null; confidence: string | null;
-  usd: number; net: number;
+  usd: number; net: number; items: string | null;
 };
 
 export const sales = (pid: number, from: number, to: number, model: Model, acc: string, limit = 200) => {
@@ -230,7 +232,8 @@ export const sales = (pid: number, from: number, to: number, model: Model, acc: 
   return q<SaleRow>(
     `select c.id, c.ts, c.order_id, c.status, c.value, c.currency, c.platform, c.product, c.payment_method, c.email,
             a.channel, a.campaign, a.ad_name, a.ad_id, a.confidence,
-            ${grossUsd("c", r)} usd, ${netUsd("c", r)} net
+            ${grossUsd("c", r)} usd, ${netUsd("c", r)} net,
+            (select group_concat(i.name || char(9) || i.type || char(9) || i.price, char(10)) from conversion_item i where i.conversion_id=c.id) items
        from conversion c left join attribution a on a.conversion_id=c.id and a.model=?
       where c.project_id=? and c.ts>=? and c.ts<? and ${ACC_SALES} order by c.ts desc limit ?`,
     model, pid, from, to, model, pid, acc, limit,

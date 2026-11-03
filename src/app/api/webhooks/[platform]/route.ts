@@ -1,14 +1,18 @@
 import { getProject, q1, run } from "@/lib/db";
 import { recordConversion } from "@/lib/conversions";
-import { clip } from "@/lib/http";
-import { normalize, PLATFORMS, skipReason, type Platform } from "@/lib/webhooks";
+import { clientIp, clip, limited } from "@/lib/http";
+import { itemsOf, normalize, PLATFORMS, skipReason, type Platform } from "@/lib/webhooks";
 
 // POST /api/webhooks/<platform>?token=<webhook token>. Token is per webhook (Integraciones > Webhooks).
 export async function POST(req: Request, ctx: { params: Promise<{ platform: string }> }) {
   const { platform } = await ctx.params;
   const token = new URL(req.url).searchParams.get("token") ?? "";
   const hook = q1<{ id: number; project_id: number }>("select id, project_id from webhook where token=?", token);
-  if (!hook) return Response.json({ error: "invalid_token" }, { status: 401 });
+  if (!hook) {
+    // Only bad tokens are throttled, so real sales are never limited.
+    if (limited(`wh|${clientIp(req)}`, 30)) return Response.json({ error: "rate_limited" }, { status: 429 });
+    return Response.json({ error: "invalid_token" }, { status: 401 });
+  }
 
   const raw = await req.text();
   if (raw.length > 256_000) return Response.json({ error: "too_large" }, { status: 413 });
@@ -65,6 +69,11 @@ export async function POST(req: Request, ctx: { params: Promise<{ platform: stri
     return Response.json({ ok: false, error: "no_order_id" });
   }
   const convId = recordConversion(getProject(), c);
+  const lines = p === "impultienda" ? itemsOf(body) : [];
+  if (lines.length) {
+    run("delete from conversion_item where conversion_id=?", convId);
+    for (const i of lines) run("insert into conversion_item(conversion_id,name,type,price,qty) values(?,?,?,?,?)", convId, i.name, i.type, i.price, i.qty);
+  }
   const acc = storeId && q1<{ value: string }>("select value from setting where project_id=? and key=?", hook.project_id, `store_dash:${storeId}`)?.value;
   // Sales with no campaign id land in the dashboard mapped to their store; attributed ones keep their own campaign.
   if (acc) run("update attribution set ca_id=? where conversion_id=? and ca_id is null", acc, convId);

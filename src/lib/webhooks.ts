@@ -157,6 +157,17 @@ export function normalize(platform: Platform, body: Record<string, unknown>): Co
   };
 }
 
+// Impultienda lists every line of the order (type "main" | "upsell"); stored so net revenue sums each item's net.
+export function itemsOf(body: Record<string, unknown>): { name: string; type: "main" | "upsell"; price: number; qty: number }[] {
+  const raw = get(body, "data.items");
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 20).flatMap((it) => {
+    const name = clip(get(it, "name"), 120);
+    const price = num(get(it, "price"));
+    return name && price !== null ? [{ name, type: get(it, "type") === "upsell" ? ("upsell" as const) : ("main" as const), price, qty: num(get(it, "quantity")) ?? 1 }] : [];
+  });
+}
+
 // Events that are not sales, plus Impultienda's "Probar" simulacro (test:true / TEST- order id): logged, never stored.
 export function skipReason(platform: Platform, body: Record<string, unknown>): string | null {
   if (platform !== "impultienda") return null;

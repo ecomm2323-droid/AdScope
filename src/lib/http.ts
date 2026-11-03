@@ -57,4 +57,4 @@ export function limited(key: string, max = 120): boolean {
   return e.n > max;
 }
 
-export const clientIp = (req: Request) => req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "local";
+export const clientIp = (req: Request) => req.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() ?? "local";

@@ -8,7 +8,7 @@ import { limited } from "@/lib/http";
 export async function login(form: FormData) {
   const password = process.env.APP_PASSWORD;
   if (!password) redirect("/");
-  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0].trim() ?? "local";
+  const ip = (await headers()).get("x-forwarded-for")?.split(",").at(-1)?.trim() ?? "local"; // last hop = the one the proxy added; earlier ones are client-controlled
   if (limited(`login|${ip}`, 10) || !passwordOk(String(form.get("password") ?? ""), password)) redirect("/login?error=1");
   (await cookies()).set(AUTH_COOKIE, authToken(password), {
     httpOnly: true,

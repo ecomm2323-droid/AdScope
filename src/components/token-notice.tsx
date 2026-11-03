@@ -3,9 +3,15 @@
 import { usePathname } from "next/navigation";
 
 // Warns when the Meta connection is about to stop (auto-renewal failed) or already has.
-export function TokenNotice({ days, needsApp }: { days?: number; needsApp?: boolean }) {
+export function TokenNotice({ days, needsApp, weakPass }: { days?: number; needsApp?: boolean; weakPass?: boolean }) {
   const path = usePathname();
   if (path === "/login") return null;
+  if (weakPass)
+    return (
+      <div className="mb-4 rounded-lg border border-bad/50 bg-bad/10 px-3 py-2 text-bad">
+        Tu APP_PASSWORD es corta (menos de 12 caracteres). Cambiala en Railway → Variables por una más larga.
+      </div>
+    );
   if (needsApp && path !== "/credenciales" && path !== "/tutorial")
     return (
       <a href="/credenciales" className="block mb-4 rounded-lg border border-warn/50 bg-warn/10 px-3 py-2 text-warn">

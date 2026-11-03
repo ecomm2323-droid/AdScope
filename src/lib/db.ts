@@ -67,6 +67,9 @@ CREATE TABLE IF NOT EXISTS setting(
   project_id INTEGER NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY(project_id, key));
 CREATE TABLE IF NOT EXISTS product_net(
   project_id INTEGER NOT NULL, product TEXT NOT NULL, net_ars REAL NOT NULL, PRIMARY KEY(project_id, product));
+CREATE TABLE IF NOT EXISTS conversion_item(
+  conversion_id INTEGER NOT NULL, name TEXT NOT NULL, type TEXT NOT NULL, price REAL NOT NULL, qty REAL NOT NULL DEFAULT 1);
+CREATE INDEX IF NOT EXISTS conv_item ON conversion_item(conversion_id);
 CREATE TABLE IF NOT EXISTS dashboard(
   id INTEGER PRIMARY KEY, project_id INTEGER NOT NULL, name TEXT NOT NULL, ad_account_id TEXT NOT NULL,
   created_at INTEGER NOT NULL, UNIQUE(project_id, ad_account_id));

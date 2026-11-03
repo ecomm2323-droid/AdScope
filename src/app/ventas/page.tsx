@@ -52,7 +52,14 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
                 <td className={td}>{money(r.value)} <span className="text-muted text-[10px]">{r.currency ?? ""}</span></td>
                 <td className={td}>{money(r.net)}</td>
                 <td className={td}>{r.platform ?? "—"}</td>
-                <td className={td}>{r.product ?? "—"}</td>
+                <td className={td}>
+                  {r.items
+                    ? r.items.split("\n").map((l) => {
+                        const [name, type, price] = l.split("\t");
+                        return <div key={l}>{name}{type === "upsell" && <span className="text-muted"> (upsell)</span>} <span className="text-muted">{money(Number(price))}</span></div>;
+                      })
+                    : r.product ?? "—"}
+                </td>
                 <td className={td}>{r.payment_method ?? "—"}</td>
                 <td className={td}>{srcLabel(r.channel)}</td>
                 <td className={td}>{r.campaign ?? "—"}</td>
