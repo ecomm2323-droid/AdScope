@@ -5,7 +5,7 @@ import { Card, Filters, money, srcLabel, td, th } from "@/components/ui";
 import { DashboardNotice } from "@/components/dashboard-notice";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { ConfirmButton } from "@/components/confirm-button";
-import { forceAttribution } from "./actions";
+import { forceAttribution, markApproved } from "./actions";
 
 export const metadata = { title: "Ventas" };
 export const dynamic = "force-dynamic";
@@ -86,7 +86,15 @@ export default async function Ventas({ searchParams }: { searchParams: Promise<{
                 <td className={td}>{r.campaign ?? "—"}</td>
                 <td className={td}>{r.ad_name ?? r.ad_id ?? "—"}</td>
                 <td className={`${td} text-muted`}>{r.confidence ?? "—"}</td>
-                <td className={td}><a href={`${here}&o=${encodeURIComponent(r.order_id)}`} className="text-xs underline text-muted hover:text-white">Asignar</a></td>
+                <td className={td}><a href={`${here}&o=${encodeURIComponent(r.order_id)}`} className="text-xs underline text-muted hover:text-white">Asignar</a>
+                  {r.status === "pending" && (
+                    <form action={markApproved} className="mt-1">
+                      <input type="hidden" name="order" value={r.order_id} />
+                      <input type="hidden" name="back" value={here} />
+                      <ConfirmButton message="¿Confirmás que este pedido ya figura aprobado en la plataforma? Pasa a approved y cuenta en las métricas." className="text-xs underline text-muted hover:text-white">Marcar aprobada</ConfirmButton>
+                    </form>
+                  )}
+                </td>
               </tr>
             ))}
             {!rows.length && <tr><td className={`${td} text-muted`} colSpan={13}>Sin ventas de esta cuenta en el período.</td></tr>}

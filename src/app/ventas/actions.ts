@@ -4,6 +4,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getProject, q1, run } from "@/lib/db";
 
+// Manual fix when the platform shows the order as paid but its approved webhook never arrived. Only pending -> approved.
+export async function markApproved(form: FormData) {
+  const order = String(form.get("order") ?? "").trim().slice(0, 100);
+  const back = String(form.get("back") ?? "/ventas");
+  run("update conversion set status='approved', updated_at=? where project_id=? and order_id=? and status='pending'", Date.now(), getProject().id, order);
+  revalidatePath("/", "layout");
+  redirect(back.startsWith("/ventas") ? back : "/ventas");
+}
+
 // Manually pins a sale to an ad (both attribution models). Webhook retries never overwrite it (see needsReattribution).
 export async function forceAttribution(form: FormData) {
   const pid = getProject().id;
