@@ -134,4 +134,4 @@ export function attribute(pid: number, convId: number, vid: string | null, ts: n
 }
 
 export const needsReattribution = (convId: number) =>
-  !q1<{ touch_id: number | null }>("select touch_id from attribution where conversion_id=? and touch_id is not null limit 1", convId);
+  !q1<{ touch_id: number | null }>("select touch_id from attribution where conversion_id=? and (touch_id is not null or confidence='manual') limit 1", convId);
