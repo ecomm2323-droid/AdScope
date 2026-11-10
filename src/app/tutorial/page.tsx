@@ -157,7 +157,7 @@ export default async function Tutorial() {
         <div id="s0" className="scroll-mt-20">
           <Card title="1 · Crear tu propia app de Meta (una sola vez)">
             <p className="text-muted mb-3">
-              Anotá el App ID y el App Secret en un bloc de notas cuando los veas: los vas a pegar en la herramienta al final. Meta exige que cada persona use su propia “app” para dar permiso de lectura. No es una app que se publica: queda en modo desarrollo, solo para vos, y no pide verificación de empresa.
+              Anotá el App ID y el App Secret en un bloc de notas cuando los veas: los vas a pegar en la herramienta al final. Meta exige que cada persona use su propia “app” para dar permiso de lectura y de edición (pausar campañas y cambiar presupuestos). No es una app que se publica: queda en modo desarrollo, solo para vos, y no pide verificación de empresa.
             </p>
             <Steps>
               <li>
@@ -221,7 +221,7 @@ export default async function Tutorial() {
           <Card title="2 · Conectar Meta (para traer los gastos)">
             <Steps>
               <li><Tool t="app" />Andá a <Link href="/credenciales" className={link}>Credenciales</Link> y tocá <b>Conectar / reconectar con Meta</b>.</li>
-              <li><Tool t="meta" />Se abre Facebook. Entrá con la cuenta que administra tus anuncios y aceptá los permisos (solo pide <i>leer</i> anuncios, no puede publicar ni gastar).</li>
+              <li><Tool t="meta" />Se abre Facebook. Entrá con la cuenta que administra tus anuncios y aceptá los permisos (pide <i>leer</i> anuncios y <i>editarlos</i>: solo pausa/activa campañas y cambia presupuestos cuando vos lo pedís; no crea anuncios).</li>
               <li><Tool t="app" />Volvés a esta herramienta. En <Link href="/credenciales" className={link}>Credenciales</Link>, junto al botón, tiene que decir <b>token vigente</b>.</li>
               <li>
                 <Tool t="ads" />Entrá a <a href="https://adsmanager.facebook.com" target="_blank" rel="noreferrer" className={link}>adsmanager.facebook.com</a> y elegí tu cuenta. Fijate en la barra de direcciones del navegador: aparece <code>act=1234567890</code>. Ese número es el <b>ID de tu cuenta publicitaria</b>. Copialo.

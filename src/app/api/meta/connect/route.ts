@@ -9,7 +9,7 @@ export function GET() {
   const state = randomBytes(16).toString("hex");
   const url = new URL("https://www.facebook.com/v25.0/dialog/oauth");
   url.search = new URLSearchParams({
-    client_id, redirect_uri: redirectUri(), scope: "ads_read", response_type: "code", state,
+    client_id, redirect_uri: redirectUri(), scope: "ads_read,ads_management", response_type: "code", state,
   }).toString();
 
   const res = NextResponse.redirect(url);

@@ -8,6 +8,8 @@ import { dashboards } from "@/lib/dashboards";
 import { headers } from "next/headers";
 import { CopyButton } from "@/components/copy-button";
 import { mcpKey } from "@/lib/mcp-key";
+import { ConfirmButton } from "@/components/confirm-button";
+import { deleteDashboard } from "../dashboards/actions";
 import { savePricing } from "./actions";
 
 export const metadata = { title: "Ajustes" };
@@ -150,6 +152,23 @@ export default async function Ajustes({ searchParams }: { searchParams: Promise<
         </p>
         <button className="px-4 py-2 rounded-lg bg-accent text-on-accent font-medium neon">Guardar</button>
       </form>
+
+      <div className="mt-6">
+        <Card title="Dashboards">
+          <p className="text-muted">Eliminar un dashboard no borra ventas ni gasto: solo deja de mostrarse esa cuenta.</p>
+          <ul className="mt-3 space-y-2">
+            {dashboards(pid).map((d) => (
+              <li key={d.id} className="flex items-center justify-between gap-3">
+                <span className="truncate">{d.name} <span className="font-mono text-xs text-muted">{d.ad_account_id}</span></span>
+                <form action={deleteDashboard}>
+                  <input type="hidden" name="id" value={d.id} />
+                  <ConfirmButton message={`¿Eliminar el dashboard «${d.name}»?`} className="text-bad text-xs underline py-2">Eliminar</ConfirmButton>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </div>
 
       <div className="mt-6">
         <Card title="Probar conexiones">

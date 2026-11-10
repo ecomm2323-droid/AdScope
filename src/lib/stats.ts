@@ -126,7 +126,7 @@ const COLS: Record<Level, { id: string; name: string; touchName: string; metaId:
 
 export type Row = {
   id: string; name: string; status: string | null; updated: number | null;
-  budget: number | null; bid: number | null; minSpend: number | null; maxSpend: number | null;
+  budget: number | null; ownBudget: boolean; bid: number | null; minSpend: number | null; maxSpend: number | null;
   sales: number; revenue: number; net: number; spend: number; clicks: number; impressions: number; ic: number;
 };
 
@@ -197,7 +197,7 @@ export function byLevel(pid: number, from: number, to: number, model: Model, lev
     let r = rows.get(id);
     if (!r) {
       rows.set(id, (r = {
-        id, name: name ?? "Sin identificar", status: null, updated: null, budget: null, bid: null,
+        id, name: name ?? "Sin identificar", status: null, updated: null, budget: null, ownBudget: false, bid: null,
         minSpend: null, maxSpend: null, sales: 0, revenue: 0, net: 0, spend: 0, clicks: 0, impressions: 0, ic: 0,
       }));
     }
@@ -213,6 +213,7 @@ export function byLevel(pid: number, from: number, to: number, model: Model, lev
     r.status = e.status;
     r.updated = e.updated_time;
     r.budget = e.daily_budget ?? e.lifetime_budget ?? k?.budget ?? null;
+    r.ownBudget = e.daily_budget != null; // only a daily budget set on this very object can be edited here
     r.bid = e.bid_amount;
     r.minSpend = e.min_spend ?? k?.min_spend ?? null;
     r.maxSpend = e.max_spend ?? k?.max_spend ?? null;

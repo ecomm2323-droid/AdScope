@@ -31,6 +31,22 @@ async function graph<T>(path: string): Promise<T> {
   return body;
 }
 
+// Write to one campaign/adset/ad (status, daily_budget in minor units). Needs the ads_management permission.
+export async function metaWrite(id: string, fields: Record<string, string>, pid = getProject().id): Promise<void> {
+  const token = metaToken(pid);
+  if (!token) throw new Error("No hay token de Meta. Tocá «Conectar / reconectar con Meta».");
+  const res = await fetch(`${API}/${id}`, {
+    method: "POST",
+    body: new URLSearchParams({ ...fields, access_token: token }),
+    cache: "no-store",
+  });
+  const body = (await res.json()) as { error?: { message: string; code?: number } };
+  if (!body.error) return;
+  if (body.error.code === 200 || /permission|ads_management/i.test(body.error.message))
+    throw new Error("Meta no dejó editar: falta el permiso de edición. Reconectá con Meta (Ajustes → «Conectar / reconectar con Meta») y aceptá todos los permisos.");
+  throw new Error("Meta: " + body.error.message);
+}
+
 // Read-only probe: can the saved token see this ad account? Returns the account name or throws Meta's message.
 export async function checkAccount(account: string, pid = getProject().id): Promise<string> {
   const token = metaToken(pid);

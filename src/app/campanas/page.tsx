@@ -6,6 +6,8 @@ import { Card, Filters, money, td, th } from "@/components/ui";
 import { SyncMeta } from "@/components/sync-meta";
 import { DashboardNotice } from "@/components/dashboard-notice";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { ConfirmButton } from "@/components/confirm-button";
+import { setBudget, setStatus } from "./actions";
 
 export const metadata = { title: "Meta" };
 export const dynamic = "force-dynamic";
@@ -31,7 +33,7 @@ const STATUS = (s: string | null): [string, string] =>
 export default async function Campanas({
   searchParams,
 }: {
-  searchParams: Promise<{ p?: string; m?: string; l?: string; f?: string; t?: string; c?: string; s?: string; v?: string; o?: string }>;
+  searchParams: Promise<{ p?: string; m?: string; l?: string; f?: string; t?: string; c?: string; s?: string; v?: string; o?: string; err?: string }>;
 }) {
   const sp = await searchParams;
   const p = asPeriod(sp.p);
@@ -74,6 +76,7 @@ export default async function Campanas({
       <h1 className="text-lg font-semibold mb-1">Meta</h1>
       <DashboardNotice name={dash?.name} account={dash?.ad_account_id} />
       <AutoRefresh />
+      {sp.err && <div className="mb-3 rounded-lg border border-bad/50 bg-bad/10 px-3 py-2 text-bad">{sp.err.slice(0, 300)}</div>}
       <SyncMeta last={lastSync(pid)} />
       <div className="flex gap-2 mb-3">
         {(Object.keys(LEVELS) as Level[]).map((l) => (
@@ -139,12 +142,34 @@ export default async function Campanas({
                       </Link>
                     )}
                   </td>
-                  <td className={`${td} ${st[1]}`}>{st[0]}</td>
+                  <td className={`${td} ${st[1]}`}>
+                    {st[0]}
+                    {(r.status === "ACTIVE" || r.status === "PAUSED") && (
+                      <form action={setStatus} className="mt-1">
+                        <input type="hidden" name="id" value={r.id} />
+                        <input type="hidden" name="back" value={url(level, c, s)} />
+                        <input type="hidden" name="status" value={r.status === "ACTIVE" ? "PAUSED" : "ACTIVE"} />
+                        <ConfirmButton message={`¿${r.status === "ACTIVE" ? "Pausar" : "Activar"} «${r.name}» en Meta?`} className="text-[11px] underline text-muted hover:text-white">
+                          {r.status === "ACTIVE" ? "Pausar" : "Activar"}
+                        </ConfirmButton>
+                      </form>
+                    )}
+                  </td>
                   <td className={`${td} sticky left-0 bg-[#12141f] max-w-[8.5rem] md:max-w-xs`}>
                     <div className="truncate">{r.name}</div>
                     <div className="font-mono text-[11px] text-muted">{r.id}</div>
                   </td>
-                  <td className={td}>{usd(r.budget)}</td>
+                  <td className={td}>
+                    {usd(r.budget)}
+                    {r.ownBudget && (
+                      <form action={setBudget} className="mt-1 flex gap-1">
+                        <input type="hidden" name="id" value={r.id} />
+                        <input type="hidden" name="back" value={url(level, c, s)} />
+                        <input name="budget" type="number" step="0.01" min="0.01" placeholder="nuevo" aria-label={`Nuevo presupuesto diario de ${r.name}`} className="w-20 rounded border border-line bg-white/5 px-1 text-xs" />
+                        <ConfirmButton message={`¿Cambiar el presupuesto diario de «${r.name}» en Meta?`} className="text-[11px] underline text-muted hover:text-white">OK</ConfirmButton>
+                      </form>
+                    )}
+                  </td>
                   <td className={td}>{r.updated ? new Date(r.updated).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" }) : "—"}</td>
                   <td className={td}>{r.sales}</td>
                   <td className={td}>{usd(r.sales ? r.spend / r.sales : null)}</td>

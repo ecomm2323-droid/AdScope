@@ -28,5 +28,5 @@ export async function mapStore(form: FormData) {
 
 export async function deleteDashboard(form: FormData) {
   run("delete from dashboard where id=? and project_id=?", Number(form.get("id")), getProject().id);
-  revalidatePath("/dashboards");
+  revalidatePath("/", "layout");
 }
