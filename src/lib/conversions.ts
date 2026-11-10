@@ -33,10 +33,10 @@ export function recordConversion(project: Project, c: ConversionInput): number {
   if (existing) {
     // Never wipe known fields with nulls from a thinner payload.
     run(
-      `update conversion set status=?, value=case when ?>0 then ? else value end, currency=coalesce(?,currency),
+      `update conversion set status=case when ?='pending' and status in ('approved','refunded','chargeback') then status else ? end, value=case when ?>0 then ? else value end, currency=coalesce(?,currency),
          platform=coalesce(?,platform), product=coalesce(?,product), payment_method=coalesce(?,payment_method),
          email=coalesce(?,email), visitor_id=coalesce(visitor_id,?), updated_at=? where id=?`,
-      c.status, c.value, c.value, c.currency, c.platform, c.product, c.paymentMethod, c.email, c.vid, now, existing.id,
+      c.status, c.status, c.value, c.value, c.currency, c.platform, c.product, c.paymentMethod, c.email, c.vid, now, existing.id,
     );
     const vid = existing.visitor_id ?? c.vid;
     // A later event without UTMs (refund, retry) must not overwrite a known attribution with "direct".
