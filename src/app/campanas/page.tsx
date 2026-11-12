@@ -25,6 +25,10 @@ const COLUMNS: [string, string?][] = [
   ["Límite de oferta", "Bid cap del conjunto"], ["Gasto mín.", "Gasto mínimo diario del conjunto"], ["Gasto máx.", "Gasto máximo diario del conjunto"],
 ];
 
+// One sort key per COLUMNS entry, same order.
+const KEYS = ["status", "name", "budget", "updated", "sales", "cpa", "spend", "revenue", "profit", "roas", "margin", "roi", "ic", "cpi", "cpc", "ctr", "cpm", "imp", "clicks", "bid", "min", "max"] as const;
+type SortKey = (typeof KEYS)[number];
+
 const usd = (n: number | null) => (n == null ? "—" : money(n));
 const pct = (n: number | null) => (n == null ? "—" : `${(n * 100).toFixed(2)}%`);
 const STATUS = (s: string | null): [string, string] =>
@@ -33,7 +37,7 @@ const STATUS = (s: string | null): [string, string] =>
 export default async function Campanas({
   searchParams,
 }: {
-  searchParams: Promise<{ p?: string; m?: string; l?: string; f?: string; t?: string; c?: string; s?: string; v?: string; o?: string; err?: string }>;
+  searchParams: Promise<{ p?: string; m?: string; l?: string; f?: string; t?: string; c?: string; s?: string; v?: string; o?: string; d?: string; err?: string }>;
 }) {
   const sp = await searchParams;
   const p = asPeriod(sp.p);
@@ -46,11 +50,10 @@ export default async function Campanas({
   const c = ids(sp.c);
   const s = level === "campaign" ? [] : ids(sp.s);
   const date = p === "custom" && sp.f ? `&f=${sp.f}&t=${sp.t ?? sp.f}` : "";
-  const SORTS = { sales: "Ventas", spend: "Gastos", revenue: "Ingresos", profit: "Ganancia", roas: "ROAS" } as const;
-  type SortKey = keyof typeof SORTS;
-  const o: SortKey = sp.o && sp.o in SORTS ? (sp.o as SortKey) : "spend";
-  const url = (l: Level, nc: string[], ns: string[], no: SortKey = o) =>
-    `/campanas?p=${p}&m=${m}&v=${v}&o=${no}&l=${l}${date}${nc.length ? `&c=${nc.join(",")}` : ""}${ns.length ? `&s=${ns.join(",")}` : ""}`;
+  const o: SortKey = (KEYS as readonly string[]).includes(sp.o ?? "") ? (sp.o as SortKey) : "spend";
+  const d = sp.d === "asc" ? "asc" : "desc";
+  const url = (l: Level, nc: string[], ns: string[], no: SortKey = o, nd = d) =>
+    `/campanas?p=${p}&m=${m}&v=${v}&o=${no}&d=${nd}&l=${l}${date}${nc.length ? `&c=${nc.join(",")}` : ""}${ns.length ? `&s=${ns.join(",")}` : ""}`;
   const toggle = (id: string) => {
     const on = (level === "campaign" ? c : s).includes(id);
     const flip = (a: string[]) => (on ? a.filter((x) => x !== id) : [...a, id]);
@@ -60,11 +63,22 @@ export default async function Campanas({
   const dash = await activeDashboard();
   const rows = byLevel(pid, from, to, m, level, dash?.ad_account_id ?? "", c, s);
   const revOf = (r: (typeof rows)[number]) => (v === "neta" ? r.net : r.revenue);
-  const metric: Record<SortKey, (r: (typeof rows)[number]) => number> = {
-    sales: (r) => r.sales, spend: (r) => r.spend, revenue: revOf,
-    profit: (r) => revOf(r) - r.spend, roas: (r) => (r.spend ? revOf(r) / r.spend : -1),
+  const ratio = (n: number, den: number) => (den ? n / den : null);
+  const metric: Record<SortKey, (r: (typeof rows)[number]) => number | string | null> = {
+    status: (r) => STATUS(r.status)[0], name: (r) => r.name, budget: (r) => r.budget, updated: (r) => r.updated, sales: (r) => r.sales,
+    cpa: (r) => ratio(r.spend, r.sales), spend: (r) => r.spend, revenue: revOf, profit: (r) => revOf(r) - r.spend,
+    roas: (r) => ratio(revOf(r), r.spend), margin: (r) => ratio(revOf(r) - r.spend, revOf(r)), roi: (r) => ratio(revOf(r) - r.spend, r.spend),
+    ic: (r) => r.ic, cpi: (r) => ratio(r.spend, r.ic), cpc: (r) => ratio(r.spend, r.clicks), ctr: (r) => ratio(r.clicks, r.impressions),
+    cpm: (r) => { const x = ratio(r.spend, r.impressions); return x == null ? null : x * 1000; }, imp: (r) => r.impressions, clicks: (r) => r.clicks,
+    bid: (r) => r.bid, min: (r) => r.minSpend, max: (r) => r.maxSpend,
   };
-  rows.sort((a, b) => metric[o](b) - metric[o](a));
+  // Empty values go last in both directions.
+  rows.sort((a, b) => {
+    const x = metric[o](a), y = metric[o](b);
+    if (x == null || y == null) return x == null ? (y == null ? 0 : 1) : -1;
+    const c = typeof x === "string" ? x.localeCompare(String(y), "es") : x - (y as number);
+    return d === "asc" ? c : -c;
+  });
   const tot = rows.reduce(
     (t, r) => ({ sales: t.sales + r.sales, spend: t.spend + r.spend, rev: t.rev + revOf(r), clicks: t.clicks + r.clicks, imp: t.imp + r.impressions, ic: t.ic + r.ic }),
     { sales: 0, spend: 0, rev: 0, clicks: 0, imp: 0, ic: 0 },
@@ -90,7 +104,7 @@ export default async function Campanas({
           </Link>
         ))}
       </div>
-      <Filters base="/campanas" p={p} m={m} v={v} f={sp.f} t={sp.t} extra={`&o=${o}&l=${level}${c.length ? `&c=${c.join(",")}` : ""}${s.length ? `&s=${s.join(",")}` : ""}`} />
+      <Filters base="/campanas" p={p} m={m} v={v} f={sp.f} t={sp.t} extra={`&o=${o}&d=${d}&l=${level}${c.length ? `&c=${c.join(",")}` : ""}${s.length ? `&s=${s.join(",")}` : ""}`} />
       {(c.length > 0 || s.length > 0) && (
         <p className="text-xs text-muted mb-2">
           Filtrando por {c.length ? `${c.length} campaña(s)` : ""}{c.length && s.length ? " y " : ""}{s.length ? `${s.length} conjunto(s)` : ""} ·{" "}
@@ -103,19 +117,20 @@ export default async function Campanas({
             <tr>
               <th className={th} />
               {COLUMNS.map(([h, tip], i) => {
-                const key = (Object.keys(SORTS) as SortKey[]).find((k) => SORTS[k] === h);
+                const key = KEYS[i];
                 return (
                   <th
                     key={h}
                     title={tip}
-                    aria-sort={key && key === o ? "descending" : undefined}
+                    aria-sort={key === o ? (d === "asc" ? "ascending" : "descending") : undefined}
                     className={`${th} ${i === 1 ? "sticky left-0 bg-[#12141f]" : ""}`}
                   >
-                    {key ? (
-                      <Link href={url(level, c, s, key)} className={`underline decoration-dotted ${key === o ? "text-white" : ""}`}>
-                        {h}{key === o ? " ↓" : ""}
-                      </Link>
-                    ) : h === "Campaña" ? LEVELS[level].slice(0, -1) : h}
+                    <Link
+                      href={url(level, c, s, key, key === o ? (d === "desc" ? "asc" : "desc") : key === "name" || key === "status" ? "asc" : "desc")}
+                      className={`underline decoration-dotted ${key === o ? "text-white" : ""}`}
+                    >
+                      {h === "Campaña" ? LEVELS[level].slice(0, -1) : h}{key === o ? (d === "asc" ? " ↑" : " ↓") : ""}
+                    </Link>
                     {tip ? " ⓘ" : ""}
                   </th>
                 );
