@@ -37,7 +37,7 @@ const STATUS = (s: string | null): [string, string] =>
 export default async function Campanas({
   searchParams,
 }: {
-  searchParams: Promise<{ p?: string; m?: string; l?: string; f?: string; t?: string; c?: string; s?: string; v?: string; o?: string; d?: string; err?: string }>;
+  searchParams: Promise<{ p?: string; m?: string; l?: string; f?: string; t?: string; c?: string; s?: string; v?: string; o?: string; d?: string; e?: string; err?: string }>;
 }) {
   const sp = await searchParams;
   const p = asPeriod(sp.p);
@@ -52,8 +52,9 @@ export default async function Campanas({
   const date = p === "custom" && sp.f ? `&f=${sp.f}&t=${sp.t ?? sp.f}` : "";
   const o: SortKey = (KEYS as readonly string[]).includes(sp.o ?? "") ? (sp.o as SortKey) : "spend";
   const d = sp.d === "asc" ? "asc" : "desc";
-  const url = (l: Level, nc: string[], ns: string[], no: SortKey = o, nd = d) =>
-    `/campanas?p=${p}&m=${m}&v=${v}&o=${no}&d=${nd}&l=${l}${date}${nc.length ? `&c=${nc.join(",")}` : ""}${ns.length ? `&s=${ns.join(",")}` : ""}`;
+  const e = sp.e === "on" || sp.e === "off" ? sp.e : "all"; // all | on (solo activos) | off (solo inactivos)
+  const url = (l: Level, nc: string[], ns: string[], no: SortKey = o, nd = d, ne = e) =>
+    `/campanas?p=${p}&m=${m}&v=${v}&o=${no}&d=${nd}&e=${ne}&l=${l}${date}${nc.length ? `&c=${nc.join(",")}` : ""}${ns.length ? `&s=${ns.join(",")}` : ""}`;
   const toggle = (id: string) => {
     const on = (level === "campaign" ? c : s).includes(id);
     const flip = (a: string[]) => (on ? a.filter((x) => x !== id) : [...a, id]);
@@ -61,7 +62,7 @@ export default async function Campanas({
   };
   const pid = getProject().id;
   const dash = await activeDashboard();
-  const rows = byLevel(pid, from, to, m, level, dash?.ad_account_id ?? "", c, s);
+  const rows = byLevel(pid, from, to, m, level, dash?.ad_account_id ?? "", c, s).filter((r) => e === "all" || (r.status === "ACTIVE") === (e === "on"));
   const revOf = (r: (typeof rows)[number]) => (v === "neta" ? r.net : r.revenue);
   const ratio = (n: number, den: number) => (den ? n / den : null);
   const metric: Record<SortKey, (r: (typeof rows)[number]) => number | string | null> = {
@@ -104,7 +105,14 @@ export default async function Campanas({
           </Link>
         ))}
       </div>
-      <Filters base="/campanas" p={p} m={m} v={v} f={sp.f} t={sp.t} extra={`&o=${o}&d=${d}&l=${level}${c.length ? `&c=${c.join(",")}` : ""}${s.length ? `&s=${s.join(",")}` : ""}`} />
+      <div className="flex gap-2 mb-3 text-xs">
+        {([["all", "Todos"], ["on", "Activos"], ["off", "Inactivos"]] as const).map(([k, label]) => (
+          <Link key={k} href={url(level, c, s, o, d, k)} aria-current={k === e ? "true" : undefined} className={`px-3 py-1.5 rounded-lg border ${k === e ? "border-accent text-white bg-panel" : "border-line text-muted"}`}>
+            {label}
+          </Link>
+        ))}
+      </div>
+      <Filters base="/campanas" p={p} m={m} v={v} f={sp.f} t={sp.t} extra={`&o=${o}&d=${d}&e=${e}&l=${level}${c.length ? `&c=${c.join(",")}` : ""}${s.length ? `&s=${s.join(",")}` : ""}`} />
       {(c.length > 0 || s.length > 0) && (
         <p className="text-xs text-muted mb-2">
           Filtrando por {c.length ? `${c.length} campaña(s)` : ""}{c.length && s.length ? " y " : ""}{s.length ? `${s.length} conjunto(s)` : ""} ·{" "}
